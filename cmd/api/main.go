@@ -9,12 +9,17 @@ import (
 	"github.com/eduardovfaleiro/gatekeeper/internal/repository"
 	"github.com/eduardovfaleiro/gatekeeper/internal/service"
 	authpb "github.com/eduardovfaleiro/gatekeeper/proto"
+	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+		log.Println("No .env file found")
+	}
+
 	db, err := sql.Open("postgres", "postgres://user:pass@localhost:5435/gatekeeper_db?sslmode=disable")
 	if err != nil {
 		log.Fatal(err)

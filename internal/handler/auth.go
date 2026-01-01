@@ -8,6 +8,8 @@ import (
 	"github.com/eduardovfaleiro/gatekeeper/internal/service"
 	authpb "github.com/eduardovfaleiro/gatekeeper/proto"
 	"github.com/go-playground/validator/v10"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type AuthHandler struct {
@@ -38,5 +40,17 @@ func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest)
 		Id:        user.ID.String(),
 		Email:     user.Email,
 		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+	}, nil
+}
+
+func (h *AuthHandler) Login(ctx context.Context, req *authpb.LoginRequest) (*authpb.LoginResponse, error) {
+	token, err := h.svc.Login(ctx, req.Email, req.Password)
+
+	if err != nil {
+		return nil, status.Error(codes.Unauthenticated, "invalid credentials")
+	}
+
+	return &authpb.LoginResponse{
+		AccessToken: token,
 	}, nil
 }

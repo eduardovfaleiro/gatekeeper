@@ -2,16 +2,20 @@ package service
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"os"
 
 	"github.com/eduardovfaleiro/gatekeeper/internal/model"
 	"github.com/eduardovfaleiro/gatekeeper/internal/repository"
 	"github.com/eduardovfaleiro/gatekeeper/pkg/hash"
+	"github.com/eduardovfaleiro/gatekeeper/pkg/token"
 	passwordValidator "github.com/wagslane/go-password-validator"
 )
 
 type AuthService interface {
 	Register(ctx context.Context, email, password string) (*model.User, error)
+	Login(ctx context.Context, email, password string) (string, error)
 }
 
 type authService struct {
@@ -34,14 +38,35 @@ func (s *authService) Register(ctx context.Context, email, password string) (*mo
 		return nil, err
 	}
 
-	user := &model.User{
+	u, err := s.repo.Create(ctx, &model.User{
 		Email:        email,
 		PasswordHash: hashedPassword,
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("could not create user: %w", err)
 	}
 
-	if err := s.repo.Create(ctx, user); err != nil {
-		return nil, err
+	return u, nil
+}
+
+func (s *authService) Login(ctx context.Context, email, password string) (string, error) {
+	user, err := s.repo.GetByEmail(ctx, email)
+
+	if err != nil {
+		return "", err
 	}
 
-	return user, nil
+	if !hash.CheckPasswordHash(password, user.PasswordHash) {
+		return "", errors.New("invalid credentials")
+	}
+
+	secret := os.Getenv("JWT_SECRET")
+	token, err := token.GenerateToken(user.ID, secret)
+
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
 }

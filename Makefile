@@ -19,4 +19,9 @@ new_migration:
 migrate_force:
 	docker run --rm -v $(shell pwd)/$(MIGRATION_DIR):/migrations --network $(NETWORK_NAME) $(MIGRATE_IMAGE) -path=/migrations -database "$(DB_URL)" force $(version)
 
-.PHONY: postgres migrateup migratedown new_migration migrate_force
+proto:
+	protoc --go_out=. --go_opt=paths=source_relative \
+		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
+		proto/auth.proto
+
+.PHONY: proto postgres migrateup migratedown new_migration migrate_force
