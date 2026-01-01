@@ -4,8 +4,10 @@ import (
 	"database/sql"
 	"log"
 	"net"
+	"os"
 
 	"github.com/eduardovfaleiro/gatekeeper/internal/handler"
+	"github.com/eduardovfaleiro/gatekeeper/internal/interceptor"
 	"github.com/eduardovfaleiro/gatekeeper/internal/repository"
 	"github.com/eduardovfaleiro/gatekeeper/internal/service"
 	authpb "github.com/eduardovfaleiro/gatekeeper/proto"
@@ -32,6 +34,12 @@ func main() {
 	repo := repository.NewPostgresUserRepository(db)
 	svc := service.NewAuthService(repo)
 	authHandler := handler.NewAuthHandler(svc)
+
+	server := grpc.NewServer(
+		grpc.UnaryInterceptor(interceptor.AuthInterceptor(os.Getenv("JWT_SECRET"))),
+	)
+
+	authpb.RegisterAuthServiceServer(server, authHandler)
 
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
