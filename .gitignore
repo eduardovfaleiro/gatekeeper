@@ -1,1 +1,5 @@
 *.env
+# Pasta de binários temporários do Air
+/tmp
+# Logs de erro do Air
+build-errors.log

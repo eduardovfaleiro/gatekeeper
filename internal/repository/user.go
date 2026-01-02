@@ -3,6 +3,8 @@ package repository
 import (
 	"context"
 	"database/sql"
+	"errors"
+	"fmt"
 
 	"github.com/eduardovfaleiro/gatekeeper/internal/model"
 )
@@ -10,6 +12,7 @@ import (
 type UserRepository interface {
 	Create(ctx context.Context, user *model.User) (*model.User, error)
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
+	UpdatePassword(ctx context.Context, userID model.ID, hashedPassword string) error
 }
 
 type postgresUserRepository struct {
@@ -24,6 +27,10 @@ func (r *postgresUserRepository) Create(ctx context.Context, user *model.User) (
 	err := r.db.QueryRowContext(ctx, query, user.Email, user.PasswordHash).Scan(&u.ID, &u.CreatedAt)
 
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
+
 		return nil, err
 	}
 
@@ -44,8 +51,31 @@ func (r *postgresUserRepository) GetByEmail(ctx context.Context, email string) (
 
 	err := r.db.QueryRowContext(ctx, query, email).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.CreatedAt)
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrNotFound
+		}
 		return nil, err
 	}
 
 	return &user, nil
+}
+
+func (r *postgresUserRepository) UpdatePassword(ctx context.Context, userID model.ID, hashedPassword string) error {
+	query := `UPDATE users SET password_hash = $1 WHERE id = $2`
+
+	result, err := r.db.ExecContext(ctx, query, hashedPassword, userID[:])
+	if err != nil {
+		return fmt.Errorf("repository.UpdatePassword (exec): %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("repository.UpdatePassword (rows_affected): %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+
+	return nil
 }

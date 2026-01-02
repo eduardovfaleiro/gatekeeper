@@ -4,26 +4,34 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
+	"time"
 
 	"github.com/eduardovfaleiro/gatekeeper/internal/model"
 	"github.com/eduardovfaleiro/gatekeeper/internal/repository"
 	"github.com/eduardovfaleiro/gatekeeper/pkg/hash"
 	"github.com/eduardovfaleiro/gatekeeper/pkg/token"
+	"github.com/google/uuid"
+	"github.com/redis/go-redis/v9"
 	passwordValidator "github.com/wagslane/go-password-validator"
 )
 
 type AuthService interface {
 	Register(ctx context.Context, email, password string) (*model.User, error)
 	Login(ctx context.Context, email, password string) (string, error)
+	ForgotPassword(ctx context.Context, email string) error
+	ResetPassword(ctx context.Context, token, new_password string) error
 }
 
 type authService struct {
-	repo repository.UserRepository
+	repo         repository.UserRepository
+	redis        *redis.Client
+	emailService EmailService
 }
 
-func NewAuthService(repo repository.UserRepository) AuthService {
-	return &authService{repo: repo}
+func NewAuthService(repo repository.UserRepository, redis *redis.Client, emailService EmailService) AuthService {
+	return &authService{repo: repo, redis: redis, emailService: emailService}
 }
 
 func (s *authService) Register(ctx context.Context, email, password string) (*model.User, error) {
@@ -69,4 +77,63 @@ func (s *authService) Login(ctx context.Context, email, password string) (string
 	}
 
 	return token, nil
+}
+
+func (s *authService) ForgotPassword(ctx context.Context, email string) error {
+	user, err := s.repo.GetByEmail(ctx, email)
+
+	if err != nil {
+		return err
+	}
+
+	resetToken := uuid.New().String()
+
+	key := fmt.Sprintf("password_reset:%s", resetToken)
+	err = s.redis.Set(ctx, key, user.ID, 15*time.Minute).Err()
+
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		err := s.emailService.SendResetLink(user.Email, resetToken)
+		if err != nil {
+			log.Printf("ERROR: authService.ForgotPassword background email: %v", err)
+		}
+	}()
+
+	return nil
+}
+
+func (s *authService) ResetPassword(ctx context.Context, token, newPassword string) error {
+	key := fmt.Sprintf("password_reset:%s", token)
+
+	userIDStr, err := s.redis.Get(ctx, key).Result()
+	if err != nil {
+		if errors.Is(err, redis.Nil) {
+			return repository.ErrNotFound
+		}
+		return fmt.Errorf("authService.ResetPassword (redis get): %w", err)
+	}
+
+	// TODO(gerar UUID pelo Go e padronizar conversões, em vez de fazer que nem aqui.)
+	var userID model.ID
+	copy(userID[:], userIDStr)
+
+	hashedPassword, err := hash.HashPassword(newPassword)
+	if err != nil {
+		return fmt.Errorf("authService.ResetPassword (hash): %w", err)
+	}
+
+	err = s.repo.UpdatePassword(ctx, userID, hashedPassword)
+	if err != nil {
+		return fmt.Errorf("authService.ResetPassword (repo): %w", err)
+	}
+
+	err = s.redis.Del(ctx, key).Err()
+	if err != nil {
+		log.Printf("WARN: failed to delete reset token from redis: %v", err)
+	}
+
+	return nil
 }

@@ -3,8 +3,9 @@ NETWORK_NAME=gatekeeper-network
 
 MIGRATE_IMAGE = migrate/migrate
 MIGRATION_DIR = db/migration
+MAIN_PACKAGE = cmd/api/main.go
 
-postgres:
+infra:
 	docker compose up -d
 
 migrateup:
@@ -24,4 +25,7 @@ proto:
 		--go-grpc_out=. --go-grpc_opt=paths=source_relative \
 		proto/auth.proto
 
-.PHONY: proto postgres migrateup migratedown new_migration migrate_force
+evans:
+	evans --host localhost --port 50051 -r repl
+
+.PHONY: evans proto postgres migrateup migratedown new_migration migrate_force

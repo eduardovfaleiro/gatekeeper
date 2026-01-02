@@ -11,6 +11,14 @@ services:
     networks:
       - gatekeeper-network
 
+  auth-redis:
+    image: redis:alpine
+    container_name: gatekeeper-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - gatekeeper-network
+
 networks:
   gatekeeper-network:
     driver: bridge

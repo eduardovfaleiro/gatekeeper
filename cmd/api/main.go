@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"log"
 	"net"
 	"os"
+	"time"
 
 	"github.com/eduardovfaleiro/gatekeeper/internal/handler"
 	"github.com/eduardovfaleiro/gatekeeper/internal/interceptor"
@@ -13,6 +15,7 @@ import (
 	authpb "github.com/eduardovfaleiro/gatekeeper/proto"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"github.com/redis/go-redis/v9"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 )
@@ -28,11 +31,29 @@ func main() {
 	}
 
 	if err := db.Ping(); err != nil {
-		log.Fatal(err)
+		log.Fatal("Could not connect to PostgreSQL:", err)
+	}
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: "",
+		DB:       0,
+	})
+
+	ctx := context.Background()
+	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+
+	defer cancel()
+
+	if err := rdb.Ping(pingCtx).Err(); err != nil {
+		log.Fatal("Could not connect to Redis:", err)
 	}
 
 	repo := repository.NewPostgresUserRepository(db)
-	svc := service.NewAuthService(repo)
+
+	emailSvc := service.NewEmailService()
+
+	svc := service.NewAuthService(repo, rdb, emailSvc)
 	authHandler := handler.NewAuthHandler(svc)
 
 	server := grpc.NewServer(
