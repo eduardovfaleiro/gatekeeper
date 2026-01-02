@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/eduardovfaleiro/gatekeeper/internal/model"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/google/uuid"
 )
 
-func GenerateToken(userID uuid.UUID, secret string) (string, error) {
+func GenerateToken(userID model.ID, secret string) (string, error) {
 	claims := jwt.MapClaims{
 		"sub": userID.String(),
 		"exp": time.Now().Add(time.Hour * 24).Unix(),
@@ -20,7 +20,7 @@ func GenerateToken(userID uuid.UUID, secret string) (string, error) {
 	return token.SignedString([]byte(secret))
 }
 
-func ValidateToken(tokenStr string, secret string) (uuid.UUID, error) {
+func ValidateToken(tokenStr string, secret string) (model.ID, error) {
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -29,18 +29,18 @@ func ValidateToken(tokenStr string, secret string) (uuid.UUID, error) {
 	})
 
 	if err != nil || !token.Valid {
-		return uuid.Nil, fmt.Errorf("invalid token: %w", err)
+		return model.ID{}, fmt.Errorf("invalid token: %w", err)
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return uuid.Nil, errors.New("invalid claims")
+		return model.ID{}, errors.New("invalid claims")
 	}
 
 	userIDStr, ok := claims["sub"].(string)
 	if !ok {
-		return uuid.Nil, errors.New("subject not found in token")
+		return model.ID{}, errors.New("subject not found in token")
 	}
 
-	return uuid.Parse(userIDStr)
+	return model.ParseID(userIDStr)
 }

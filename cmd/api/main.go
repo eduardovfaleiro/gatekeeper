@@ -56,22 +56,20 @@ func main() {
 	svc := service.NewAuthService(repo, rdb, emailSvc)
 	authHandler := handler.NewAuthHandler(svc)
 
-	server := grpc.NewServer(
+	grpcServer := grpc.NewServer(
 		grpc.UnaryInterceptor(interceptor.AuthInterceptor(os.Getenv("JWT_SECRET"))),
 	)
 
-	authpb.RegisterAuthServiceServer(server, authHandler)
+	authpb.RegisterAuthServiceServer(grpcServer, authHandler)
+	reflection.Register(grpcServer)
 
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen: %v", err)
 	}
 
-	grpcServer := grpc.NewServer()
-	authpb.RegisterAuthServiceServer(grpcServer, authHandler)
-	reflection.Register(grpcServer)
-
 	log.Println("gRPC server running on :50051")
+
 	if err := grpcServer.Serve(lis); err != nil {
 		log.Fatalf("failed to serve: %v", err)
 	}

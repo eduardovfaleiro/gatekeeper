@@ -7,10 +7,11 @@ import (
 	"fmt"
 
 	"github.com/eduardovfaleiro/gatekeeper/internal/model"
+	"github.com/lib/pq"
 )
 
 type UserRepository interface {
-	Create(ctx context.Context, user *model.User) (*model.User, error)
+	Create(ctx context.Context, user *model.User) error
 	GetByEmail(ctx context.Context, email string) (*model.User, error)
 	UpdatePassword(ctx context.Context, userID model.ID, hashedPassword string) error
 }
@@ -19,25 +20,22 @@ type postgresUserRepository struct {
 	db *sql.DB
 }
 
-func (r *postgresUserRepository) Create(ctx context.Context, user *model.User) (*model.User, error) {
-	query := `INSERT INTO users (email, password_hash) VALUES ($1, $2) RETURNING id, created_at`
+func (r *postgresUserRepository) Create(ctx context.Context, user *model.User) error {
+	query := `INSERT INTO users (id, email, password_hash, created_at) VALUES ($1, $2, $3, $4)`
 
-	var u model.User
-
-	err := r.db.QueryRowContext(ctx, query, user.Email, user.PasswordHash).Scan(&u.ID, &u.CreatedAt)
+	_, err := r.db.ExecContext(ctx, query, user.ID, user.Email, user.PasswordHash, user.CreatedAt)
 
 	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrNotFound
+		if pgErr, ok := err.(*pq.Error); ok {
+			if pgErr.Code == "23505" {
+				return ErrUniqueConstraint
+			}
 		}
 
-		return nil, err
+		return fmt.Errorf("postgresUserRepository.Create (exec): %w", err)
 	}
 
-	u.Email = user.Email
-	u.PasswordHash = user.PasswordHash
-
-	return &u, nil
+	return nil
 }
 
 func NewPostgresUserRepository(db *sql.DB) UserRepository {
@@ -63,7 +61,7 @@ func (r *postgresUserRepository) GetByEmail(ctx context.Context, email string) (
 func (r *postgresUserRepository) UpdatePassword(ctx context.Context, userID model.ID, hashedPassword string) error {
 	query := `UPDATE users SET password_hash = $1 WHERE id = $2`
 
-	result, err := r.db.ExecContext(ctx, query, hashedPassword, userID[:])
+	result, err := r.db.ExecContext(ctx, query, hashedPassword, userID)
 	if err != nil {
 		return fmt.Errorf("repository.UpdatePassword (exec): %w", err)
 	}

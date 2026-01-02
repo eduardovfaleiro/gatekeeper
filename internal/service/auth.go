@@ -46,16 +46,20 @@ func (s *authService) Register(ctx context.Context, email, password string) (*mo
 		return nil, err
 	}
 
-	u, err := s.repo.Create(ctx, &model.User{
+	user := &model.User{
+		ID:           model.NewID(),
 		Email:        email,
 		PasswordHash: hashedPassword,
-	})
+		CreatedAt:    model.NewTimestamp(),
+	}
+
+	err = s.repo.Create(ctx, user)
 
 	if err != nil {
 		return nil, fmt.Errorf("could not create user: %w", err)
 	}
 
-	return u, nil
+	return user, nil
 }
 
 func (s *authService) Login(ctx context.Context, email, password string) (string, error) {
@@ -89,10 +93,10 @@ func (s *authService) ForgotPassword(ctx context.Context, email string) error {
 	resetToken := uuid.New().String()
 
 	key := fmt.Sprintf("password_reset:%s", resetToken)
-	err = s.redis.Set(ctx, key, user.ID, 15*time.Minute).Err()
+	err = s.redis.Set(ctx, key, user.ID.String(), 15*time.Minute).Err()
 
 	if err != nil {
-		return err
+		return fmt.Errorf("authService.ForgotPassword (redis set): %w", err)
 	}
 
 	go func() {
@@ -116,9 +120,10 @@ func (s *authService) ResetPassword(ctx context.Context, token, newPassword stri
 		return fmt.Errorf("authService.ResetPassword (redis get): %w", err)
 	}
 
-	// TODO(gerar UUID pelo Go e padronizar conversões, em vez de fazer que nem aqui.)
-	var userID model.ID
-	copy(userID[:], userIDStr)
+	userID, err := model.ParseID(userIDStr)
+	if err != nil {
+		return fmt.Errorf("authService.ResetPassword (parseID): %w", err)
+	}
 
 	hashedPassword, err := hash.HashPassword(newPassword)
 	if err != nil {

@@ -41,8 +41,10 @@ func AuthInterceptor(secret string) grpc.UnaryServerInterceptor {
 }
 
 var publicMethods = map[string]struct{}{
-	"/auth.AuthService/Login":    {},
-	"/auth.AuthService/Register": {},
+	"/auth.AuthService/Login":          {},
+	"/auth.AuthService/Register":       {},
+	"/auth.AuthService/ForgotPassword": {},
+	"/auth.AuthService/ResetPassword":  {},
 }
 
 func isPublicMethod(method string) bool {

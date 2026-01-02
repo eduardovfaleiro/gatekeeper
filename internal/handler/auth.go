@@ -36,6 +36,10 @@ func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest)
 
 	user, err := h.svc.Register(ctx, req.Email, req.Password)
 	if err != nil {
+		if errors.Is(err, repository.ErrUniqueConstraint) {
+			return nil, status.Error(codes.AlreadyExists, "email already in use")
+		}
+
 		return nil, err
 	}
 
