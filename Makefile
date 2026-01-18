@@ -5,6 +5,9 @@ MIGRATE_IMAGE = migrate/migrate
 MIGRATION_DIR = db/migration
 MAIN_PACKAGE = cmd/api/main.go
 
+run:
+	air
+
 infra:
 	docker compose up -d
 
@@ -28,4 +31,4 @@ proto:
 evans:
 	evans --host localhost --port 50051 -r repl
 
-.PHONY: evans proto postgres migrateup migratedown new_migration migrate_force
+.PHONY: evans proto postgres migrateup migratedown new_migration migrate_force air
