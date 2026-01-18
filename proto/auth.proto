@@ -3,6 +3,7 @@ syntax = "proto3";
 package auth;
 
 option go_package = "github.com/eduardovfaleiro/gatekeeper/proto/authpb";
+import "google/protobuf/timestamp.proto";
 
 message RegisterRequest {
     string email = 1;
@@ -12,7 +13,7 @@ message RegisterRequest {
 message RegisterResponse {
     string id = 1;
     string email = 2;
-    string created_at = 3;
+    google.protobuf.Timestamp created_at = 3;
 }
 
 service AuthService {

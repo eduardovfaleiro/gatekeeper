@@ -3,9 +3,7 @@ package handler
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
-	"time"
 
 	"github.com/eduardovfaleiro/gatekeeper/internal/repository"
 	"github.com/eduardovfaleiro/gatekeeper/internal/service"
@@ -13,6 +11,7 @@ import (
 	"github.com/go-playground/validator/v10"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 type AuthHandler struct {
@@ -28,10 +27,10 @@ var validate = validator.New()
 
 func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest) (*authpb.RegisterResponse, error) {
 	if err := validate.Var(req.Email, "required,email"); err != nil {
-		return nil, fmt.Errorf("invalid email format")
+		return nil, status.Error(codes.InvalidArgument, "invalid email format")
 	}
 	if err := h.validatePassword(req.Password); err != nil {
-		return nil, fmt.Errorf("password length must be between 8 and 32 characteres")
+		return nil, status.Error(codes.InvalidArgument, "password length must be between 8 and 32 characteres")
 	}
 
 	user, err := h.svc.Register(ctx, req.Email, req.Password)
@@ -40,13 +39,13 @@ func (h *AuthHandler) Register(ctx context.Context, req *authpb.RegisterRequest)
 			return nil, status.Error(codes.AlreadyExists, "email already in use")
 		}
 
-		return nil, err
+		return nil, status.Error(codes.Internal, "internal server error")
 	}
 
 	return &authpb.RegisterResponse{
 		Id:        user.ID.String(),
 		Email:     user.Email,
-		CreatedAt: user.CreatedAt.Format(time.RFC3339),
+		CreatedAt: timestamppb.New(user.CreatedAt),
 	}, nil
 }
 
