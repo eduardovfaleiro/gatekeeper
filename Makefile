@@ -6,6 +6,7 @@ MIGRATION_DIR = db/migration
 MAIN_PACKAGE = cmd/api/main.go
 
 run:
+	@which air > /dev/null || (echo "Instalando Air..." && go install github.com/air-verse/air@latest)
 	air
 
 infra:
@@ -29,6 +30,7 @@ proto:
 		proto/auth.proto
 
 evans:
+	@which evans > /dev/null || (echo "Instalando Evans..." && go install github.com/ktr0731/evans@latest)
 	evans --host localhost --port 50051 -r repl
 
 .PHONY: evans proto postgres migrateup migratedown new_migration migrate_force air
