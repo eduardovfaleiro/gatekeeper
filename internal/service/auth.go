@@ -106,6 +106,15 @@ func (s *authService) ForgotPassword(ctx context.Context, email string) error {
 		}
 	}()
 
+	err = s.redis.XAdd(ctx, &redis.XAddArgs{
+		Stream: "email_stream",
+		Values: map[string]any{
+			"email": user.Email,
+			"token": resetToken,
+			"type":  "password_reset",
+		},
+	}).Err()
+
 	return nil
 }
 
