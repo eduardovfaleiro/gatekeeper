@@ -12,6 +12,7 @@ import (
 	"github.com/eduardovfaleiro/gatekeeper/internal/interceptor"
 	"github.com/eduardovfaleiro/gatekeeper/internal/repository"
 	"github.com/eduardovfaleiro/gatekeeper/internal/service"
+	"github.com/eduardovfaleiro/gatekeeper/internal/worker"
 	authpb "github.com/eduardovfaleiro/gatekeeper/proto"
 	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
@@ -41,6 +42,12 @@ func main() {
 	})
 
 	ctx := context.Background()
+
+	err = rdb.XGroupCreateMkStream(ctx, "email_stream", "email_processors", "0").Err()
+	if err != nil {
+		log.Printf("Aviso: Stream ou Grupo de Redis já existem ou erro: %v", err)
+	}
+
 	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
 
 	defer cancel()
@@ -51,7 +58,14 @@ func main() {
 
 	repo := repository.NewPostgresUserRepository(db)
 
-	emailSvc := service.NewEmailService()
+	emailSvc := service.NewEmailService(os.Getenv("SMTP_HOST"),
+		os.Getenv("SMTP_PORT"),
+		os.Getenv("SMTP_USER"),
+		os.Getenv("SMTP_PASS"),
+		os.Getenv("SMTP_FROM"))
+	emailWorker := worker.NewEmailWorker(rdb, emailSvc)
+
+	go emailWorker.Start(ctx)
 
 	svc := service.NewAuthService(repo, rdb, emailSvc)
 	authHandler := handler.NewAuthHandler(svc)

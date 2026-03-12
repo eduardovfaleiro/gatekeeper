@@ -99,13 +99,6 @@ func (s *authService) ForgotPassword(ctx context.Context, email string) error {
 		return fmt.Errorf("authService.ForgotPassword (redis set): %w", err)
 	}
 
-	go func() {
-		err := s.emailService.SendResetLink(user.Email, resetToken)
-		if err != nil {
-			log.Printf("ERROR: authService.ForgotPassword background email: %v", err)
-		}
-	}()
-
 	err = s.redis.XAdd(ctx, &redis.XAddArgs{
 		Stream: "email_stream",
 		Values: map[string]any{
@@ -114,6 +107,10 @@ func (s *authService) ForgotPassword(ctx context.Context, email string) error {
 			"type":  "password_reset",
 		},
 	}).Err()
+
+	if err != nil {
+		return fmt.Errorf("authService.ForgotPassword (queue email): %w", err)
+	}
 
 	return nil
 }
