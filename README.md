@@ -52,7 +52,7 @@ It's fast because of contracts you create with a .proto file. Here, you say what
 ### Installation
 1. Clone the repository:
    ```bash
-   git clone https://github.com/yourusername/gatekeeper.git
+   git clone https://github.com/eduardovfaleiro/gatekeeper.git
    cd gatekeeper
    ```
 2. Set up your `.env` file:
