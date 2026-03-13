@@ -80,7 +80,10 @@ func main() {
 	authHandler := handler.NewAuthHandler(svc)
 
 	grpcServer := grpc.NewServer(
-		grpc.UnaryInterceptor(interceptor.AuthInterceptor(os.Getenv("JWT_SECRET"))),
+		grpc.ChainUnaryInterceptor(
+			interceptor.AuthInterceptor(os.Getenv("JWT_SECRET")),
+			// interceptor.RateLimitInterceptor(rdb, 10, time.Minute), // Ex: 10 req/min por método
+		),
 	)
 
 	authpb.RegisterAuthServiceServer(grpcServer, authHandler)
