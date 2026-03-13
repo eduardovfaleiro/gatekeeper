@@ -1,0 +1,27 @@
+# Exclude git directory
+.git
+
+# Exclude dependencies (if any local vendor)
+vendor/
+
+# Exclude build output/binaries
+bin/
+main
+tmp/
+
+# Exclude local environment files (IMPORTANT for security)
+.env
+.env.*
+!.env.example
+
+# Exclude logs
+*.log
+
+# Exclude Docker files (no need to copy the Dockerfile into itself)
+Dockerfile
+compose.yml
+.dockerignore
+
+# Exclude other unneeded files
+README.md
+.air.toml

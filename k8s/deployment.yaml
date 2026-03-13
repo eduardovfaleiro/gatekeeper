@@ -1,0 +1,24 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gatekeeper-deployment   # Nome do Deployment no Cluster
+spec:
+  replicas: 3                   # Quantas cópias rodarão ao mesmo tempo
+  selector:
+    matchLabels:
+      app: gatekeeper           # O K8s usa isso para gerenciar os pods
+  template:
+    metadata:
+      labels:
+        app: gatekeeper         # Etiqueta que identifica o "time"
+    spec:
+      containers:
+      - name: gatekeeper        # Nome do contêiner dentro do pod
+        image: gatekeeper:v1    # A imagem que você buildou com docker build
+        ports:
+        - containerPort: 50051  # Porta que configuramos no EXPOSE do Dockerfile
+        envFrom:
+        - configMapRef:
+            name: gatekeeper-config
+        - secretRef:
+            name: gatekeeper-secrets
