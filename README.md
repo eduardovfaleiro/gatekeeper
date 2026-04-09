@@ -26,7 +26,7 @@ Gatekeeper is a microservice created to authenticate users for my future apps. I
 It's fast because of contracts you create with a .proto file. Here, you say what you want to receive and how the method should be like. gRPC itself receives binary data, so no json to slow the process down!
 - **Infrastructure as Code:** I found it useful to handle the database and messaging with Postgre and Redis, respectively. It made no sense to have to install a BDOR and Redis in your own system, neither would someone who saw the GitHub repository! So I used docker compose to handle both. Tired of losing time with the terminal every time, Makefile was created.
 
-## project structure
+## Project Structure
 ```text
 ├── cmd/                # Entry points (API)
 ├── internal/
