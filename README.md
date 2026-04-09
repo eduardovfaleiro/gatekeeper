@@ -1,6 +1,6 @@
 ![Gatekeeper Logo](./gatekeeper.png)
 
-## About the project
+## About The Project
 Gatekeeper is a microservice created to authenticate users for my future apps. It's highly decoupled btw.
 
 ## Tech Stack
