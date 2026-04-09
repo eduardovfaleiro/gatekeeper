@@ -1,9 +1,9 @@
 ![Gatekeeper Logo](./gatekeeper.png)
 
-## about the project
+## About the project
 Gatekeeper is a microservice created to authenticate users for my future apps. It's highly decoupled btw.
 
-## tech stack
+## Tech Stack
 - **Language:** Go (Golang)
 - **Communication:** gRPC & Protocol Buffers (Proto3)
 - **Database:** PostgreSQL
@@ -12,13 +12,13 @@ Gatekeeper is a microservice created to authenticate users for my future apps. I
 - **Containerization:** Docker & Docker Compose
 - **Tools:** Makefile, Evans CLI, Air (Live Reload)
 
-## features
+## Features
 - [X] **User Registration:** Secure signup with password hashing.
 - [X] **Authentication:** JWT-based login system.
 - [X] **Password Recovery:** Forgot/Reset password flow using Redis Streams and background workers.
 - [X] **Security:** Centralized Auth Interceptor for protected routes.
 
-## what I learned
+## What I learned
 - **Microservices Architecture:** Gatekeeper itself is a microservice. It's stateless, which means the Go code holds no data; that is PostgreSQL's role, which runs on docker containers. The same happens to Redis.
 - **Asynchronous Processing:** Redis Streams were used to send email for recovering a password, just in case the PC running Gatekeeper explodes and the process crashes.
 - **Clean Architecture:** Instead of putting all the code in one place, I organized everything in a Clean Architecture®: Handler receives user requests, checking if the request is valid → Service handles the business' rules → Repository receives calls to actually change the data
@@ -42,14 +42,14 @@ It's fast because of contracts you create with a .proto file. Here, you say what
 └── compose.yml         # Infrastructure setup
 ```
 
-## getting started
+## Getting Started
 
-### prerequisites
+### Prerequisites
 - Go 1.21+
 - Docker & Docker Compose
 - Evans CLI (optional, for testing)
 
-### installation
+### Installation
 1. Clone the repository:
    ```bash
    git clone https://github.com/eduardovfaleiro/gatekeeper.git
@@ -72,7 +72,7 @@ It's fast because of contracts you create with a .proto file. Here, you say what
    make run
    ```
 
-## testing the API
+## Testing the API
 You can use **Evans CLI** to interact with the gRPC server:
 ```bash
 make evans
